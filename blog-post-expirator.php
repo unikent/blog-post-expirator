@@ -26,6 +26,7 @@ class PostExpirator {
 	public function enqueue_scripts( $hook ) {
 		if( 'post.php' != $hook ) return;
 		wp_enqueue_script( 'jquery-ui-datepicker' );
+		wp_enqueue_script( 'jquery-ui-slider' );
 		wp_enqueue_script( 'post-expiring', plugins_url('assets/js/admin.js', __FILE__), array('jquery'), null, true );
 		wp_enqueue_style( 'post-expiring', plugins_url('assets/css/post-expiring.css', __FILE__) );
 	}
@@ -46,12 +47,12 @@ class PostExpirator {
 	public function save_post_meta( $post_id, $post ) {
 		if ( $post_id === null || ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) ) return;
 		if( isset($_POST['post_expiring']) ) {
-			$date_arr  = explode('-', $_POST['post_expiring']);
-			if( !isset($date_arr[0]) || !isset($date_arr[1]) || !isset($date_arr[2]) ) {
+			$date_arr  = date_parse($_POST['post_expiring']);
+			if($date_arr) {
 				delete_post_meta( $post_id, 'postexpired' );
 				$this->unscheduleExpiratorEvent($post_id);
 			}
-			if ( !empty($_POST['post_expiring']) AND checkdate($date_arr[1], $date_arr[2], $date_arr[0]) ) {
+			if ( !empty($_POST['post_expiring']) AND $date_arr && checkdate($date_arr['month'], $date_arr['day'], $date_arr['year']) ) {
 				add_post_meta( $post_id, 'postexpired', esc_sql( $_POST['post_expiring'] ), true ) || update_post_meta( $post_id, 'postexpired', esc_sql( $_POST['post_expiring'] ) );
 				$ts = get_gmt_from_date($_POST['post_expiring'],'U');
 				$this->scheduleExpiratorEvent($post_id,$ts);
